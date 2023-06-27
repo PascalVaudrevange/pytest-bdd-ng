@@ -53,3 +53,6 @@ nosetests.xml
 /src
 /share
 /local
+
+.venv
+.vscode

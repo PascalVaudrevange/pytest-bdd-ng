@@ -110,3 +110,57 @@ def test_simple(testdir, pytest_params):
     )
     result = testdir.runpytest_subprocess(*pytest_params)
     result.assert_outcomes(passed=1)
+
+
+def test_datatable_to_list_of_dicts(testdir, pytest_params):
+    """Tests that datatables can be covnerted to lists of dicts
+    """
+
+    testdir.makefile(
+        ".feature",
+        simple="""
+        Feature: Datatables can be converted to lists of strings
+            Scenario: Scenario with a datatable
+                Given I have a datatable with 3 rows
+                | Header1 | Header2 |
+                | r1c1    | r2c2    |
+                | 1       | 2       |
+                Then it is parsed into a list with 2 entries
+
+            Scenario: Scenario with an emtpy datatable
+                Given I have a datatable with 1 rows
+                | Header1 | Header2 |
+                Then it is parsed into an empty list
+    """)
+    testdir.makepyfile(
+        """
+        from pytest_bdd import scenario, given, then, parsers
+
+        @scenario("datatable_to_list_of_dicts")
+
+        @given(
+            parsers.parse("I have a datatable with {n_row} rows"),
+            target_fixture="data_table"
+        )
+        def dt_with_3_rows(step):
+            result = steps.data_table
+            return result
+
+        @then("it is parsed into a list with 2 entries")
+        def parsed_3_entries(data_table):
+            actual = list(data_table.to_records())
+            expected = [
+                {"Header1": "r1c1", "Header2": "r1c2"},
+                {"Header1": "1", "Header2": "2"}
+            ]
+            assert actual == expected
+
+        @then("it is parsed into an empty list")
+        def parsed_empty_list(data_table):
+            actual = list(data_table.to_records())
+            expected = []
+            assert actual == expected
+        """
+    )
+    result = testdir.runpytest_subprocess(*pytest_params)
+    result.assert_outcomes(passed=2)

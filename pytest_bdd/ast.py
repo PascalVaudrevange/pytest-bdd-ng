@@ -398,6 +398,35 @@ class DataTable(Locatable, ModelSchemaPostLoadable):
             registry.update(row.registry)
         return registry
 
+    def to_records(self) -> iter:
+        """converts the contents of the data table to records
+
+        The return value is a row-wise list that
+        can be used e.g. to create a pandas data frame like so
+
+        df = pd.DataFrame.from_records(DataTable.to_records())
+
+        Returns:
+            iterator: the records in the table
+        """
+        n_rows = len(self.rows)
+        if n_rows > 1:
+            header = [cell_.value for cell_ in self.rows[0].cells]
+            result = (
+                {
+                    key_: cell_.value
+                    for key_, cell_ in zip(header, row_.cells)
+                }
+                for row_ in self.rows[1:]
+            )
+        elif n_rows == 1:
+            result = (
+                {cell_.value: None} for cell_ in self.rows[0].cells
+            )
+        else:
+            result = iter(())
+        return result
+
 
 class DataTableSchema(LocatableSchema, Schema):
     rows = fields.Nested(lambda: TableRowSchema(many=True))
